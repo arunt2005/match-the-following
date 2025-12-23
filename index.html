@@ -12,6 +12,7 @@ body {
   background: linear-gradient(135deg, #eef2ff, #fdf4ff);
 }
 
+/* Container */
 .container {
   max-width: 900px;
   margin: auto;
@@ -21,6 +22,7 @@ body {
   box-shadow: 0 20px 60px rgba(0,0,0,0.15);
 }
 
+/* Header */
 .header {
   display: flex;
   justify-content: space-between;
@@ -52,8 +54,23 @@ h1 {
   position: relative;
 }
 
-.column { width: 45%; }
+.column {
+  width: 45%;
+}
 
+/* Column title */
+.column-title {
+  text-align: center;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 10px;
+  font-size: 16px;
+  background: #eef2ff;
+  padding: 8px;
+  border-radius: 10px;
+}
+
+/* Items */
 .item {
   padding: 12px;
   margin: 12px 0;
@@ -62,9 +79,12 @@ h1 {
   text-align: center;
   cursor: pointer;
   border: 2px solid transparent;
+  transition: 0.2s;
 }
 
-.item:hover { background: #eef2ff; }
+.item:hover {
+  background: #eef2ff;
+}
 
 .selected {
   border-color: #6366f1;
@@ -85,7 +105,7 @@ canvas {
 
 /* Buttons */
 .buttons {
-  margin-top: 30px;
+  margin-top: 25px;
   text-align: center;
 }
 
@@ -98,8 +118,15 @@ button {
   cursor: pointer;
 }
 
-.submit { background: #16a34a; color: #fff; }
-.reset { background: #dc2626; color: #fff; }
+.submit {
+  background: #16a34a;
+  color: #fff;
+}
+
+.reset {
+  background: #dc2626;
+  color: #fff;
+}
 
 /* Popup */
 .popup {
@@ -135,11 +162,53 @@ button {
 .wrong { color: #dc2626; }
 .correct-answer { color: #16a34a; font-weight: 600; }
 
-/* Mobile */
-@media(max-width: 700px) {
-  .match-area { flex-direction: column; gap: 20px; }
-  .column { width: 100%; }
+/* ================= MOBILE OPTIMIZATION ================= */
+@media (max-width: 700px) {
+
+  body {
+    padding: 10px;
+  }
+
+  .container {
+    padding: 12px;
+    border-radius: 14px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.12);
+  }
+
+  h1 {
+    font-size: 20px;
+  }
+
+  .help-text {
+    font-size: 13px;
+  }
+
+  #datetime {
+    font-size: 12px;
+  }
+
+  .match-area {
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 15px;
+  }
+
+  .column {
+    width: 100%;
+  }
+
+  .column-title {
+    font-size: 15px;
+    padding: 6px;
+  }
+
+  .item {
+    margin: 8px 0;
+    padding: 10px;
+    font-size: 15px;
+  }
 }
+/* ======================================================= */
 </style>
 </head>
 
@@ -158,8 +227,14 @@ button {
 
   <div class="match-area" id="matchArea">
     <canvas id="canvas"></canvas>
-    <div class="column" id="left"></div>
-    <div class="column" id="right"></div>
+
+    <div class="column" id="left">
+      <div class="column-title">Column A</div>
+    </div>
+
+    <div class="column" id="right">
+      <div class="column-title">Column B</div>
+    </div>
   </div>
 
   <div class="buttons">
@@ -168,7 +243,6 @@ button {
   </div>
 </div>
 
-<!-- Popup -->
 <div class="popup" id="popup" onclick="closePopup()">
   <div class="popup-content">
     <div class="score" id="scoreText"></div>
@@ -200,8 +274,9 @@ function shuffle(a){ return a.sort(()=>Math.random()-0.5); }
 
 /* Render */
 function render() {
-  left.innerHTML = "";
-  right.innerHTML = "";
+  left.innerHTML = `<div class="column-title">Column A</div>`;
+  right.innerHTML = `<div class="column-title">Column B</div>`;
+
   shuffle([...pairs]).forEach(p=>{
     left.innerHTML += `<div class="item" data-id="${p.left}">${p.left}</div>`;
   });
@@ -218,9 +293,8 @@ const canvas=document.getElementById("canvas");
 const ctx=canvas.getContext("2d");
 
 function resizeCanvas(){
-  const a=matchArea;
-  canvas.width=a.offsetWidth;
-  canvas.height=a.offsetHeight;
+  canvas.width=matchArea.offsetWidth;
+  canvas.height=matchArea.offsetHeight;
   drawLines();
 }
 window.addEventListener("resize",resizeCanvas);
