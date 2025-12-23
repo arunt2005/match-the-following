@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Match The Following</title>
+
+<style>
+body {
+  margin: 0;
+  font-family: "Segoe UI", sans-serif;
+  background: linear-gradient(135deg, #eef2ff, #fdf4ff);
+}
+
+.container {
+  max-width: 900px;
+  margin: auto;
+  padding: 20px;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+h1 {
+  color: #4f46e5;
+  margin: 0;
+}
+
+.help-text {
+  display: block;
+  font-size: 14px;
+  color: #6b7280;
+  margin-top: 6px;
+}
+
+#datetime {
+  font-size: 14px;
+  color: #555;
+}
+
+/* Layout */
+.match-area {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 30px;
+  position: relative;
+}
+
+.column { width: 45%; }
+
+.item {
+  padding: 12px;
+  margin: 12px 0;
+  background: #f9fafb;
+  border-radius: 12px;
+  text-align: center;
+  cursor: pointer;
+  border: 2px solid transparent;
+}
+
+.item:hover { background: #eef2ff; }
+
+.selected {
+  border-color: #6366f1;
+  background: #eef2ff;
+}
+
+.matched {
+  border-color: #16a34a;
+  background: #ecfdf5;
+}
+
+/* Canvas */
+canvas {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* Buttons */
+.buttons {
+  margin-top: 30px;
+  text-align: center;
+}
+
+button {
+  padding: 12px 30px;
+  border-radius: 30px;
+  border: none;
+  font-size: 16px;
+  margin: 0 10px;
+  cursor: pointer;
+}
+
+.submit { background: #16a34a; color: #fff; }
+.reset { background: #dc2626; color: #fff; }
+
+/* Popup */
+.popup {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.popup-content {
+  background: #fff;
+  width: 90%;
+  max-width: 450px;
+  border-radius: 25px;
+  padding: 30px;
+  text-align: center;
+}
+
+.score {
+  font-size: 48px;
+  color: #4f46e5;
+  font-weight: bold;
+}
+
+.result {
+  margin-top: 15px;
+  text-align: left;
+}
+
+.correct { color: #16a34a; }
+.wrong { color: #dc2626; }
+.correct-answer { color: #16a34a; font-weight: 600; }
+
+/* Mobile */
+@media(max-width: 700px) {
+  .match-area { flex-direction: column; gap: 20px; }
+  .column { width: 100%; }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>
+      Match the Following
+      <span class="help-text">
+        (Tap / Click Column A, then Column B to match)
+      </span>
+    </h1>
+    <div id="datetime"></div>
+  </div>
+
+  <div class="match-area" id="matchArea">
+    <canvas id="canvas"></canvas>
+    <div class="column" id="left"></div>
+    <div class="column" id="right"></div>
+  </div>
+
+  <div class="buttons">
+    <button class="submit" onclick="submitQuiz()">Submit</button>
+    <button class="reset" onclick="resetQuiz()">Reset</button>
+  </div>
+</div>
+
+<!-- Popup -->
+<div class="popup" id="popup" onclick="closePopup()">
+  <div class="popup-content">
+    <div class="score" id="scoreText"></div>
+    <div class="result" id="result"></div>
+  </div>
+</div>
+
+<script>
+/* Date & Time */
+function updateDate() {
+  const now = new Date();
+  datetime.innerText = now.toLocaleString("en-GB", {
+    day:"2-digit", month:"short", year:"numeric",
+    hour:"2-digit", minute:"2-digit", second:"2-digit",
+    hour12:true
+  }).replace(",", "");
+}
+setInterval(updateDate,1000); updateDate();
+
+/* Data */
+const pairs = [
+  { left:"Apple", right:"Fruit" },
+  { left:"Car", right:"Vehicle" },
+  { left:"Sun", right:"Star" },
+  { left:"Water", right:"Liquid" }
+];
+
+function shuffle(a){ return a.sort(()=>Math.random()-0.5); }
+
+/* Render */
+function render() {
+  left.innerHTML = "";
+  right.innerHTML = "";
+  shuffle([...pairs]).forEach(p=>{
+    left.innerHTML += `<div class="item" data-id="${p.left}">${p.left}</div>`;
+  });
+  shuffle([...pairs]).forEach(p=>{
+    right.innerHTML += `<div class="item" data-id="${p.left}">${p.right}</div>`;
+  });
+  bindEvents();
+}
+
+/* Matching */
+let selectedLeft=null, matches={};
+
+const canvas=document.getElementById("canvas");
+const ctx=canvas.getContext("2d");
+
+function resizeCanvas(){
+  const a=matchArea;
+  canvas.width=a.offsetWidth;
+  canvas.height=a.offsetHeight;
+  drawLines();
+}
+window.addEventListener("resize",resizeCanvas);
+
+function bindEvents(){
+  document.querySelectorAll("#left .item").forEach(i=>{
+    i.onclick=()=>{
+      document.querySelectorAll(".item").forEach(x=>x.classList.remove("selected"));
+      selectedLeft=i; i.classList.add("selected");
+    };
+  });
+
+  document.querySelectorAll("#right .item").forEach(i=>{
+    i.onclick=()=>{
+      if(!selectedLeft) return;
+      matches[selectedLeft.dataset.id]=i;
+      selectedLeft.classList.add("matched");
+      i.classList.add("matched");
+      selectedLeft.classList.remove("selected");
+      selectedLeft=null;
+      drawLines();
+    };
+  });
+}
+
+function drawLines(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  Object.keys(matches).forEach(k=>{
+    const l=document.querySelector(`#left .item[data-id="${k}"]`);
+    const r=matches[k];
+    const a=canvas.getBoundingClientRect();
+    const r1=l.getBoundingClientRect();
+    const r2=r.getBoundingClientRect();
+    ctx.beginPath();
+    ctx.moveTo(r1.right-a.left,r1.top+r1.height/2-a.top);
+    ctx.lineTo(r2.left-a.left,r2.top+r2.height/2-a.top);
+    ctx.strokeStyle="#4f46e5";
+    ctx.lineWidth=3;
+    ctx.stroke();
+  });
+}
+
+/* Submit */
+function submitQuiz(){
+  let score=0, html="";
+  pairs.forEach(p=>{
+    if(matches[p.left] && matches[p.left].dataset.id===p.left){
+      score++;
+      html+=`<div class="correct">✔ ${p.left} → ${p.right}</div>`;
+    } else {
+      const user=matches[p.left]?.innerText || "Not Answered";
+      html+=`
+        <div class="wrong">
+          ✘ ${p.left} → ${user}
+          <span class="correct-answer">(Correct: ${p.right})</span>
+        </div>`;
+    }
+  });
+  scoreText.innerText=`${score} / ${pairs.length}`;
+  result.innerHTML=html;
+  popup.style.display="flex";
+}
+
+function resetQuiz(){
+  matches={};
+  render(); resizeCanvas();
+}
+
+function closePopup(){
+  popup.style.display="none";
+}
+
+/* Init */
+render(); resizeCanvas();
+</script>
+
+</body>
+</html>
